@@ -19,6 +19,10 @@ using MailKit.Net.Imap;
 using MailKit.Search;
 using System.IO;
 
+using ImapX;
+using ImapX.Collections;
+using Mail_Manager.Model;
+
 namespace Mail_Manager
 {
     /// <summary>
@@ -28,6 +32,7 @@ namespace Mail_Manager
     {
         public string loginUser;
         private string curPressMail;
+        private string curFolder;
 
         private AppMailContext db = new AppMailContext();
 
@@ -94,34 +99,29 @@ namespace Mail_Manager
             var senderBtn = sender as Button;
             curPressMail = senderBtn.Content.ToString();
 
-            try
+            var con = (from x in db.UserMails where x.User == loginUser &&
+                       x.Name == curPressMail select x).First();
+            string imap = "imap." + con.Server;
+
+            MessageBox.Show("Почтовый ящик: " + con.Name);
+
+            var client = new ImapX.ImapClient(imap, con.PortFrom, true);
+            if (client.Connect())
             {
-                var con = (from x in db.UserMails where x.User == loginUser &&
-                     x.Name == curPressMail select x).First();
-                string imap = "imap." + con.Server;
-
-                using (var client = new MailKit.Net.Imap.ImapClient())
+                if (client.Login(con.Login, con.Password))
                 {
-                    client.Connect(imap, con.PortFrom, true); // Коннект к серверу
-                    client.Authenticate(con.Login, con.Password); // Авторизация
-                    client.Inbox.Open(MailKit.FolderAccess.ReadWrite); // Открываем папку Inbox с правами Read Write
-                    
-                    for(int i = client.Inbox.Count - 1; i < client.Inbox.Count; i++) // Получаем ID последнего сообщения
+                    var folders = new List<EmailFolde>();
+                    foreach(var folder in client.Folders)
                     {
-                        var message = client.Inbox.GetMessage(i); // Получаем сообщение по ID в данном случае мы получаем id самого нового сообщения
-                        RichBox.AppendText(message.Body.ToString()); // Выводит тело сообщение в RichBox
-                        client.Inbox.AddFlags(i, MailKit.MessageFlags.Deleted, false); // Удаляем сообщение.
+                        folders.Add(new EmailFolde { Title = folder.Name });
                     }
-
-                    for(int i = 0; i < 10; i++) // Перебираем все ID сообщений
-                    {
-                        var message = client.Inbox.GetMessage(i); // Получаем сообщение по списку от самого последнего по самое новое
-                    }
+                    foldersList.ItemsSource = folders;
+                    MessageBox.Show("Подключение успешно!");
                 }
             }
-            catch
+            else
             {
-                MessageBox.Show("Не удалось авторизоваться на сервере!");
+                MessageBox.Show("Не удалось подключиться к серверу!");
             }
         }
 
@@ -141,6 +141,50 @@ namespace Mail_Manager
             db.UserMails.Remove(y);
             db.SaveChanges();
             AddListMail();
+        }
+
+        /// <summary>
+        /// Отображения писем выбранной папки
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void Button_Folder_Click(object sender, RoutedEventArgs e)
+        {
+            var senderBtn = sender as Button;
+            curFolder = senderBtn.Content.ToString();
+            MessageBox.Show(curFolder);
+
+            var con = (from x in db.UserMails where x.User == loginUser &&
+                       x.Name == curPressMail select x).First();
+            string imap = "imap." + con.Server;
+
+            MessageBox.Show("Почтовый ящик: " + con.Name);
+
+            var client = new ImapX.ImapClient(imap, con.PortFrom, true);
+            if (client.Connect())
+            {
+                if (client.Login(con.Login, con.Password))
+                {
+                    messagesList.ItemsSource = GetMessagesForFolder(client, curFolder);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Не удалось подключиться к серверу!");
+            }
+        }
+
+
+        /// <summary>
+        /// Получение списка писем
+        /// </summary>
+        /// <param name="cln"></param>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public static MessageCollection GetMessagesForFolder(ImapX.ImapClient cln, string name)
+        {
+            cln.Folders[name].Messages.Download("ALL", ImapX.Enums.MessageFetchMode.Basic, 10); // начало закачки
+            return cln.Folders[name].Messages;
         }
     }
 }

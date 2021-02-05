@@ -39,17 +39,35 @@
             </Border.Effect>
             <Button HorizontalAlignment="Right" VerticalAlignment="Center" Content="ВЫХОД" Margin="0,8,20,8" Width="93" Click="Button_Exit_Click"/>
         </Border>
-        <Border Background="White" CornerRadius="30" HorizontalAlignment="Left" Height="510" Margin="266,82,0,0" VerticalAlignment="Top" Width="902">
+        <Border Background="White" CornerRadius="30" HorizontalAlignment="Left" Height="510" Margin="266,82,0,0" VerticalAlignment="Top" Width="236">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="30" Color="Black" ShadowDepth="20" />
             </Border.Effect>
-            <RichTextBox x:Name="RichBox" Margin="15">
-                <FlowDocument>
-                    <Paragraph>
-                        <Run Text="{Binding message}"/>
-                    </Paragraph>
-                </FlowDocument>
-            </RichTextBox>
+            <ListView Name="foldersList" Margin="15">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <WrapPanel>
+                            <Button Content="{Binding Title}" Width="175" Background="#32127A" Click="Button_Folder_Click"/>
+                        </WrapPanel>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Border>
+        <Border Background="White" CornerRadius="30" HorizontalAlignment="Left" Height="510" Margin="522,82,0,0" VerticalAlignment="Top" Width="646">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="30" Color="Black" ShadowDepth="20" />
+            </Border.Effect>
+            <Grid>
+                <ListView Name="messagesList" Margin="15">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="5, 0, 5, 5">
+                                <TextBlock FontSize="20" Text="{Binding Subject}" Cursor="Hand" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Grid>
         </Border>
 
 
